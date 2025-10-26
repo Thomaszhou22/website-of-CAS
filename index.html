@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>社团签到系统</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 登录页面 -->
+    <div id="loginPage" class="page">
+        <div class="login-container">
+            <h1>🏛️ 社团签到系统</h1>
+            <div class="login-tabs">
+                <button class="tab-btn active" data-role="captain">社长</button>
+                <button class="tab-btn" data-role="member">社员</button>
+            </div>
+            
+            <!-- 社长登录 -->
+            <div id="captainLogin" class="login-form">
+                <h2>社长登录</h2>
+                <div class="form-group">
+                    <label>社团号：</label>
+                    <input type="text" id="captainId" placeholder="请输入社团号">
+                </div>
+                <div class="form-group">
+                    <label>密码：</label>
+                    <input type="password" id="captainPwd" placeholder="请输入密码">
+                </div>
+                <button class="btn btn-primary" onclick="captainLogin()">登录</button>
+                <button class="btn btn-secondary" onclick="showRegister()">创建社团</button>
+                <p style="text-align: center; margin-top: 15px;">
+                    <a href="#" onclick="showForgotId()" style="color: #667eea; text-decoration: none; font-size: 14px;">忘记社团号？</a>
+                    <span style="margin: 0 10px; color: #ccc;">|</span>
+                    <a href="#" onclick="showCaptainForgotPassword()" style="color: #667eea; text-decoration: none; font-size: 14px;">忘记密码？</a>
+                </p>
+            </div>
+            
+                                                    <!-- 社员登录 -->
+              <div id="memberLogin" class="login-form" style="display:none;">
+                  <h2>社员登录</h2>
+                  <div class="form-group">
+                      <label>姓名：</label>
+                      <input type="text" id="memberName" placeholder="请输入姓名">
+                  </div>
+                  <div class="form-group">
+                      <label>密码：</label>
+                      <input type="password" id="memberPwd" placeholder="请输入密码">
+                  </div>
+                  <button class="btn btn-primary" onclick="memberLogin()">进入</button>
+                  <p style="text-align: center; margin-top: 15px;">
+                      <a href="#" onclick="showMemberRegister()" style="color: #667eea; text-decoration: none; font-size: 14px;">注册社员账号</a>
+                      <span style="margin: 0 10px; color: #ccc;">|</span>
+                      <a href="#" onclick="showForgotPassword()" style="color: #667eea; text-decoration: none; font-size: 14px;">忘记密码？</a>
+                  </p>
+              </div>
+            
+            
+            <!-- 创建社团弹窗 -->
+            <div id="registerModal" class="modal" style="display:none;">
+                <div class="modal-content">
+                    <span class="close" onclick="closeRegister()">&times;</span>
+                    <h2>创建新社团</h2>
+                    <div class="form-group">
+                        <label>学校名称：</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="text" id="schoolName" placeholder="请输入学校名称" style="flex: 1;">
+                            <button type="button" class="btn btn-secondary" onclick="showAllRegisteredSchools()" style="padding: 8px 12px; font-size: 12px;">查看已注册学校</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>社团名称：</label>
+                        <input type="text" id="clubName" placeholder="请输入社团名称">
+                    </div>
+                    <div class="form-group">
+                        <label>设置密码：</label>
+                        <input type="password" id="clubPwd" placeholder="请输入密码">
+                    </div>
+                    <div class="form-group">
+                        <label>密保问题：</label>
+                        <select id="clubSecurityQuestion" onchange="updateClubSecurityQuestionPlaceholder()">
+                            <option value="">请选择密保问题</option>
+                            <option value="您的英语老师是？">您的英语老师是？</option>
+                            <option value="您的小学班主任是？">您的小学班主任是？</option>
+                            <option value="您的宠物名字是？">您的宠物名字是？</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>密保答案：</label>
+                        <input type="text" id="clubSecurityAnswer" placeholder="请输入密保答案">
+                    </div>
+                    <p style="color: #999; font-size: 12px; margin-top: -10px; margin-bottom: 15px;">
+                        社团创建后需等待管理员审核通过
+                    </p>
+                    <button class="btn btn-primary" onclick="createClub()">提交申请</button>
+                </div>
+            </div>
+            
+                                                                             <!-- 找回社团号弹窗 -->
+              <div id="forgotIdModal" class="modal" style="display:none;">
+                  <div class="modal-content">
+                      <span class="close" onclick="closeForgotId()">&times;</span>
+                      <h2>找回社团号</h2>
+                      <div class="form-group">
+                          <label>学校名称：</label>
+                          <input type="text" id="forgotSchoolName" placeholder="请输入学校名称">
+                      </div>
+                      <div class="form-group">
+                          <label>社团名称：</label>
+                          <input type="text" id="forgotClubName" placeholder="请输入社团名称">
+                      </div>
+                      <div class="form-group">
+                          <label>密码：</label>
+                          <input type="password" id="forgotClubPwd" placeholder="请输入密码">
+                      </div>
+                      <button class="btn btn-primary" onclick="findClubId()">找回</button>
+                  </div>
+              </div>
+             
+             <!-- 注册社员账号弹窗 -->
+             <div id="memberRegisterModal" class="modal" style="display:none;">
+                 <div class="modal-content">
+                     <span class="close" onclick="closeMemberRegister()">&times;</span>
+                     <h2>注册社员账号</h2>
+                     <div class="form-group">
+                         <label>姓名：</label>
+                         <input type="text" id="regMemberName" placeholder="请输入姓名">
+                     </div>
+                     <div class="form-group">
+                         <label>学校名称：</label>
+                         <div style="display: flex; gap: 10px; align-items: center;">
+                             <input type="text" id="regMemberSchool" placeholder="请输入学校名称" style="flex: 1;">
+                             <button type="button" class="btn btn-secondary" onclick="showAllRegisteredSchools()" style="padding: 8px 12px; font-size: 12px;">查看已注册学校</button>
+                         </div>
+                     </div>
+                     <div class="form-group">
+                         <label>设置密码：</label>
+                         <input type="password" id="regMemberPwd" placeholder="请输入密码">
+                     </div>
+                     <div class="form-group">
+                         <label>确认密码：</label>
+                         <input type="password" id="regMemberPwdConfirm" placeholder="请再次输入密码">
+                     </div>
+                     <div class="form-group">
+                         <label>密保问题：</label>
+                         <select id="regSecurityQuestion" onchange="updateSecurityQuestionPlaceholder()">
+                             <option value="">请选择密保问题</option>
+                             <option value="您的英语老师是？">您的英语老师是？</option>
+                             <option value="您的小学班主任是？">您的小学班主任是？</option>
+                             <option value="您的宠物名字是？">您的宠物名字是？</option>
+                         </select>
+                     </div>
+                     <div class="form-group">
+                         <label>密保答案：</label>
+                         <input type="text" id="regSecurityAnswer" placeholder="请输入密保答案">
+                     </div>
+                     <p style="color: #999; font-size: 12px; margin-top: -10px; margin-bottom: 15px;">
+                         注册后可以加入多个社团，参与不同社团的活动
+                     </p>
+                     <button class="btn btn-primary" onclick="registerMember()">注册账号</button>
+                 </div>
+             </div>
+             
+             <!-- 忘记密码弹窗 -->
+             <div id="forgotPasswordModal" class="modal" style="display:none;">
+                 <div class="modal-content">
+                     <span class="close" onclick="closeForgotPassword()">&times;</span>
+                     <h2>找回密码</h2>
+                     <div class="form-group">
+                         <label>姓名：</label>
+                         <input type="text" id="forgotMemberName" placeholder="请输入姓名">
+                     </div>
+                     <div class="form-group">
+                         <label>密保问题：</label>
+                         <input type="text" id="forgotSecurityQuestion" readonly style="background: #f5f5f5;">
+                     </div>
+                     <div class="form-group">
+                         <label>密保答案：</label>
+                         <input type="text" id="forgotSecurityAnswer" placeholder="请输入密保答案">
+                     </div>
+                     <div class="form-group" id="newPasswordGroup" style="display:none;">
+                         <label>新密码：</label>
+                         <input type="password" id="forgotNewPassword" placeholder="请输入新密码">
+                     </div>
+                     <div class="form-group" id="confirmPasswordGroup" style="display:none;">
+                         <label>确认新密码：</label>
+                         <input type="password" id="forgotConfirmPassword" placeholder="请再次输入新密码">
+                     </div>
+                     <button class="btn btn-primary" onclick="verifySecurityAnswer()" id="verifyBtn">验证密保答案</button>
+                     <button class="btn btn-success" onclick="resetPassword()" id="resetBtn" style="display:none;">重置密码</button>
+                 </div>
+             </div>
+             
+             <!-- 社长忘记密码弹窗 -->
+             <div id="captainForgotPasswordModal" class="modal" style="display:none;">
+                 <div class="modal-content">
+                     <span class="close" onclick="closeCaptainForgotPassword()">&times;</span>
+                     <h2>找回社团密码</h2>
+                     <div class="form-group">
+                         <label>社团号：</label>
+                         <input type="text" id="forgotCaptainClubId" placeholder="请输入社团号">
+                     </div>
+                     <div class="form-group">
+                         <label>密保问题：</label>
+                         <input type="text" id="forgotCaptainSecurityQuestion" readonly style="background: #f5f5f5;">
+                     </div>
+                     <div class="form-group">
+                         <label>密保答案：</label>
+                         <input type="text" id="forgotCaptainSecurityAnswer" placeholder="请输入密保答案">
+                     </div>
+                     <div class="form-group" id="captainNewPasswordGroup" style="display:none;">
+                         <label>新密码：</label>
+                         <input type="password" id="forgotCaptainNewPassword" placeholder="请输入新密码">
+                     </div>
+                     <div class="form-group" id="captainConfirmPasswordGroup" style="display:none;">
+                         <label>确认新密码：</label>
+                         <input type="password" id="forgotCaptainConfirmPassword" placeholder="请再次输入新密码">
+                     </div>
+                     <button class="btn btn-primary" onclick="verifyCaptainSecurityAnswer()" id="captainVerifyBtn">验证密保答案</button>
+                     <button class="btn btn-success" onclick="resetCaptainPassword()" id="captainResetBtn" style="display:none;">重置密码</button>
+                 </div>
+             </div>
+             
+            <!-- 社团详情弹窗 -->
+            <div id="clubDetailsModal" class="modal" style="display:none;">
+                <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
+                    <span class="close" onclick="closeClubDetails()">&times;</span>
+                    <h2 id="clubDetailsTitle">社团详情</h2>
+                    <div id="clubDetailsContent">
+                        <!-- 详情内容将通过JavaScript生成 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 已注册学校列表弹窗 -->
+            <div id="registeredSchoolsModal" class="modal" style="display:none;">
+                <div class="modal-content" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
+                    <span class="close" onclick="closeRegisteredSchoolsModal()">&times;</span>
+                    <h2>已注册学校列表</h2>
+                    <div id="registeredSchoolsContent">
+                        <!-- 学校列表内容将通过JavaScript生成 -->
+                    </div>
+                </div>
+            </div>
+         </div>
+     </div>
+
+    <!-- 社长页面 -->
+    <div id="captainPage" class="page" style="display:none;">
+        <div class="header">
+            <h1>社长管理页面</h1>
+            <button class="btn btn-secondary" onclick="logout()">退出</button>
+        </div>
+        
+        <div class="container">
+            <!-- 左侧面板 -->
+            <div class="sidebar">
+                <div class="info-card">
+                    <h3>社团信息</h3>
+                    <p style="display: flex; align-items: center; gap: 10px;">
+                        社团号：<span id="clubIdDisplay"></span>
+                        <button class="btn-copy" onclick="copyClubId()" title="复制社团号" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">📋</button>
+                    </p>
+                    <p>社团名称：<span id="clubNameDisplay"></span></p>
+                    <p>学校：<span id="schoolNameDisplay"></span></p>
+                    <p>状态：<span id="statusDisplay"></span></p>
+                </div>
+                
+                <div class="nav-menu">
+                    <button class="nav-btn active" onclick="showSection('checkin')">签到管理</button>
+                    <button class="nav-btn" onclick="showSection('members')">社员管理</button>
+                    <button class="nav-btn" onclick="showSection('settings')">活动设置</button>
+                    <button class="nav-btn" onclick="showSection('account')">账号管理</button>
+                    <button class="nav-btn" onclick="showSection('history')">签到记录</button>
+                </div>
+            </div>
+            
+            <!-- 右侧内容区 -->
+            <div class="content">
+                <!-- 签到管理 -->
+                <div id="checkinSection" class="section">
+                    <h2>签到管理</h2>
+                    <div class="checkin-code-card">
+                        <h3>今日签到码</h3>
+                        <div class="code-display" id="checkinCode" onclick="copyCheckinCode()" title="点击复制签到码" style="cursor: pointer; position: relative;">
+                            点击生成
+                            <span style="position: absolute; top: 5px; right: 5px; font-size: 12px; opacity: 0.7;">📋</span>
+                        </div>
+                        <button class="btn btn-primary" onclick="generateCode()">生成新签到码</button>
+                    </div>
+                    
+                    <div class="time-controls">
+                        <h3>今日活动时长设置</h3>
+                        <div id="todayActivityInfo" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #667eea;">
+                            <p style="margin: 0; color: #666; font-size: 14px;">
+                                <strong>当前活动：</strong><span id="todayActivityName">无预设活动</span>
+                            </p>
+                            <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">
+                                <strong>活动日期：</strong><span id="todayActivityDate"></span>
+                            </p>
+                        </div>
+                        <div class="time-inputs">
+                            <div class="time-group">
+                                <label>C 类活动时长：</label>
+                                <input type="number" id="timeC" value="0" min="0" step="0.5">
+                                <span>小时</span>
+                            </div>
+                            <div class="time-group">
+                                <label>A 类活动时长：</label>
+                                <input type="number" id="timeA" value="0" min="0" step="0.5">
+                                <span>小时</span>
+                            </div>
+                            <div class="time-group">
+                                <label>S 类活动时长：</label>
+                                <input type="number" id="timeS" value="0" min="0" step="0.5">
+                                <span>小时</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button class="btn btn-primary" onclick="saveTimeSettings()">保存设置</button>
+                            <button class="btn btn-secondary" onclick="syncWithTodayActivity()">同步今日活动</button>
+                        </div>
+                        <div id="syncInfo" style="display: none; background: #e3f2fd; padding: 10px; border-radius: 5px; margin-top: 10px; border-left: 4px solid #2196f3;">
+                            <p style="margin: 0; color: #1976d2; font-size: 14px;">
+                                ✅ 已同步今日预设活动时长
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="pending-checkins">
+                        <h3>待审核签到</h3>
+                        <div id="pendingList"></div>
+                    </div>
+                </div>
+                
+                <!-- 社员管理 -->
+                <div id="membersSection" class="section" style="display:none;">
+                    <h2>社员管理</h2>
+                    
+                    <!-- 待审核社员 -->
+                    <div style="margin-bottom: 30px;">
+                        <h3>待审核社员</h3>
+                        <div id="pendingMembersList" style="margin-bottom: 20px;"></div>
+                    </div>
+                    
+                    <!-- 已加入社员 -->
+                    <div>
+                        <h3>已加入社员</h3>
+                        <div class="members-table-container">
+                            <table class="members-table">
+                                <thead>
+                                    <tr>
+                                        <th>姓名</th>
+                                        <th>签到次数</th>
+                                        <th>C类时长</th>
+                                        <th>A类时长</th>
+                                        <th>S类时长</th>
+                                        <th>总时长</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="membersTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 活动设置 -->
+                <div id="settingsSection" class="section" style="display:none;">
+                    <h2>活动设置</h2>
+                    <div class="activity-settings">
+                        <div class="form-group">
+                            <label>活动日期：</label>
+                            <input type="date" id="activityDate">
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                            <button class="btn btn-success" onclick="setTodayAsActivityDate()">设为今天</button>
+                        </div>
+                        
+                        <div class="auto-update-settings" style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef; margin-bottom: 30px;">
+                            <h3 style="margin-bottom: 15px; color: #667eea;">自动更新设置</h3>
+                            <div class="form-group" style="margin-bottom: 15px;">
+                                <label style="display: flex; align-items: center; gap: 10px;">
+                                    <input type="checkbox" id="autoUpdateDate" onchange="toggleAutoUpdate()">
+                                    <span>启用自动更新活动日期</span>
+                                </label>
+                                <p style="color: #666; font-size: 14px; margin: 5px 0 0 0;">
+                                    启用后，每次登录时自动将活动日期更新为当前日期
+                                </p>
+                            </div>
+                            <div id="autoUpdateInfo" style="display: none; background: #e3f2fd; padding: 10px; border-radius: 5px; border-left: 4px solid #2196f3;">
+                                <p style="margin: 0; color: #1976d2; font-size: 14px;">
+                                    ✅ 自动更新已启用，下次登录时将自动更新活动日期
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="calendar-settings" style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef;">
+                            <h3 style="margin-bottom: 20px; color: #667eea;">📅 活动日历管理</h3>
+                            <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                                提前规划活动，设置活动名称和对应的CAS时长。社员签到时会自动应用预设的活动时长。
+                            </p>
+                            
+                            <div class="calendar-container" style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                <div class="calendar-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                    <button class="btn btn-secondary btn-small" onclick="previousMonth()">← 上月</button>
+                                    <h4 id="currentMonth" style="margin: 0; color: #333;"></h4>
+                                    <button class="btn btn-secondary btn-small" onclick="nextMonth()">下月 →</button>
+                                </div>
+                                
+                                <div class="calendar-grid" id="calendarGrid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ddd; border-radius: 4px; overflow: hidden;">
+                                    <!-- 日历网格将通过JavaScript生成 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 账号管理 -->
+                <div id="accountSection" class="section" style="display:none;">
+                    <h2>账号管理</h2>
+                    <div class="account-settings">
+                        <div class="account-card">
+                            <h3>社团密码管理</h3>
+                            <p style="color: #666; margin-bottom: 20px;">管理社团的登录密码，确保账号安全</p>
+                            <button class="btn btn-secondary" onclick="showCaptainChangePassword()">修改社团密码</button>
+                        </div>
+                        
+                        <div class="account-card" style="margin-top: 30px;">
+                            <h3>社团信息</h3>
+                            <div class="info-display">
+                                <div class="info-item">
+                                    <span class="info-label">社团号：</span>
+                                    <span class="info-value" id="accountClubId"></span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">社团名称：</span>
+                                    <span class="info-value" id="accountClubName"></span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">学校：</span>
+                                    <span class="info-value" id="accountSchoolName"></span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">状态：</span>
+                                    <span class="info-value" id="accountStatus"></span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="account-card" style="margin-top: 30px; border-left: 4px solid #ff6b6b;">
+                            <h3 style="color: #ff6b6b;">危险操作</h3>
+                            <p style="color: #666; margin-bottom: 20px;">注销社团将删除所有数据，包括社员信息和签到记录。此操作不可撤销！</p>
+                            <div style="background: #fff5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ffebee;">
+                                <p style="color: #d32f2f; font-size: 14px; margin: 0;">
+                                    <strong>⚠️ 重要提醒：</strong><br>
+                                    • 注销后所有社员将无法登录<br>
+                                    • 所有签到记录将被永久删除<br>
+                                    • 社团数据将在管理员系统中保留30天<br>
+                                    • 30天后数据将被永久删除
+                                </p>
+                            </div>
+                            <button class="btn btn-danger" onclick="showDeleteClubModal()" style="background: #ff6b6b; border-color: #ff6b6b;">
+                                注销社团
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 签到记录 -->
+                <div id="historySection" class="section" style="display:none;">
+                    <h2>签到记录</h2>
+                    <div class="record-table-container">
+                        <table class="record-table">
+                            <thead>
+                                <tr>
+                                    <th>姓名</th>
+                                    <th>签到时间</th>
+                                    <th>活动日期</th>
+                                    <th>签到码</th>
+                                    <th>时长类型</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recordTableBody"></tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 活动参与情况统计 -->
+                    <div style="margin-top: 40px;">
+                        <h3 style="color: #667eea; margin-bottom: 20px;">📊 活动参与情况统计</h3>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                            <p style="margin: 0; color: #666; font-size: 14px;">
+                                <strong>说明：</strong>✅ 表示参与，❌ 表示未参与。
+                            </p>
+                        </div>
+                        <div class="participation-table-container" style="overflow-x: auto; border: 1px solid #ddd; border-radius: 8px;">
+                            <table class="participation-table" id="participationTable" style="width: 100%; border-collapse: collapse; background: white;">
+                                <thead id="participationTableHead">
+                                    <!-- 表头将通过JavaScript生成 -->
+                                </thead>
+                                <tbody id="participationTableBody">
+                                    <!-- 表格内容将通过JavaScript生成 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 社员页面 -->
+    <div id="memberPage" class="page" style="display:none;">
+        <div class="header">
+            <h1>社员中心</h1>
+            <button class="btn btn-secondary" onclick="logout()">退出</button>
+        </div>
+        
+        <div class="member-container">
+            <!-- 社员信息 -->
+            <div class="member-info">
+                <h2>欢迎, <span id="memberNameDisplay"></span></h2>
+                <p>学校：<span id="memberSchoolDisplay">未设置</span></p>
+                <p>我的社团：<span id="memberClubsCount">0</span> 个</p>
+            </div>
+            
+            <!-- 导航菜单 -->
+            <div class="member-nav">
+                <button class="nav-btn active" onclick="showMemberSection('overview')">总览</button>
+                <button class="nav-btn" onclick="showMemberSection('clubs')">我的社团</button>
+                <button class="nav-btn" onclick="showMemberSection('checkin')">签到</button>
+                <button class="nav-btn" onclick="showMemberSection('settings')">设置</button>
+            </div>
+            
+            <!-- 总览页面 -->
+            <div id="memberOverviewSection" class="member-section">
+                <h3>📊 总体统计</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="globalCheckinCount">0</div>
+                        <div class="stat-label">总签到次数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="globalTimeC">0</div>
+                        <div class="stat-label">C类时长(小时)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="globalTimeA">0</div>
+                        <div class="stat-label">A类时长(小时)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="globalTimeS">0</div>
+                        <div class="stat-label">S类时长(小时)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="globalTotalTime">0</div>
+                        <div class="stat-label">总时长(小时)</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 我的社团页面 -->
+            <div id="memberClubsSection" class="member-section" style="display:none;">
+                <h3>🏛️ 我的社团</h3>
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="showJoinClubModal()">申请加入社团</button>
+                </div>
+                <div id="memberClubsList" class="clubs-list">
+                    <!-- 社团列表将通过JavaScript生成 -->
+                </div>
+            </div>
+            
+            <!-- 签到页面 -->
+            <div id="memberCheckinSection" class="member-section" style="display:none;">
+                <h3>📝 签到</h3>
+                <div class="checkin-form">
+                    <div class="form-group">
+                        <label>选择社团：</label>
+                        <select id="checkinClubSelect">
+                            <option value="">请选择社团</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>签到码：</label>
+                        <input type="text" id="inputCheckinCode" placeholder="请输入6位签到码（不分大小写）" maxlength="6">
+                    </div>
+                    <button class="btn btn-primary" onclick="submitCheckin()">提交签到</button>
+                </div>
+            </div>
+            
+            <!-- 设置页面 -->
+            <div id="memberSettingsSection" class="member-section" style="display:none;">
+                <h3>⚙️ 账号设置</h3>
+                
+                <!-- 个人信息显示 -->
+                <div class="member-profile-info" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h4 style="margin: 0 0 15px 0; color: #333;">个人信息</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label style="font-weight: bold; color: #666;">姓名：</label>
+                            <span id="settingsMemberName" style="color: #333;"></span>
+                        </div>
+                        <div>
+                            <label style="font-weight: bold; color: #666;">学校：</label>
+                            <span id="settingsMemberSchool" style="color: #333;"></span>
+                        </div>
+                        <div>
+                            <label style="font-weight: bold; color: #666;">加入社团数：</label>
+                            <span id="settingsMemberClubsCount" style="color: #333;"></span>
+                        </div>
+                        <div>
+                            <label style="font-weight: bold; color: #666;">注册时间：</label>
+                            <span id="settingsMemberCreatedAt" style="color: #333;"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="settings-options">
+                    <button class="btn btn-secondary" onclick="showMemberChangePassword()">修改密码</button>
+                    <button class="btn btn-danger" onclick="deleteMemberAccount()">删除账号</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 社长修改密码弹窗 -->
+    <div id="captainChangePasswordModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeCaptainChangePassword()">&times;</span>
+            <h2>修改社团密码</h2>
+            <div class="form-group">
+                <label>当前密码：</label>
+                <input type="password" id="captainOldPwd" placeholder="请输入当前密码">
+            </div>
+            <div class="form-group">
+                <label>新密码：</label>
+                <input type="password" id="captainNewPwd" placeholder="请输入新密码">
+            </div>
+            <div class="form-group">
+                <label>确认新密码：</label>
+                <input type="password" id="captainNewPwdConfirm" placeholder="请再次输入新密码">
+            </div>
+            <button class="btn btn-primary" onclick="changeCaptainPassword()">确定</button>
+        </div>
+    </div>
+
+    <!-- 社员修改密码弹窗 -->
+    <div id="memberChangePasswordModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeMemberChangePassword()">&times;</span>
+            <h2>修改密码</h2>
+            <div class="form-group">
+                <label>当前密码：</label>
+                <input type="password" id="memberOldPwd" placeholder="请输入当前密码">
+            </div>
+            <div class="form-group">
+                <label>新密码：</label>
+                <input type="password" id="memberNewPwd" placeholder="请输入新密码">
+            </div>
+            <div class="form-group">
+                <label>确认新密码：</label>
+                <input type="password" id="memberNewPwdConfirm" placeholder="请再次输入新密码">
+            </div>
+            <button class="btn btn-primary" onclick="changeMemberPassword()">确定</button>
+        </div>
+    </div>
+
+    <!-- 注销社团确认弹窗 -->
+    <div id="deleteClubModal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close" onclick="closeDeleteClubModal()">&times;</span>
+            <h2 style="color: #ff6b6b;">⚠️ 注销社团确认</h2>
+            <div style="background: #fff5f5; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #ffebee;">
+                <p style="color: #d32f2f; font-size: 16px; margin: 0; font-weight: 600;">
+                    您确定要注销社团吗？
+                </p>
+            </div>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <p style="color: #666; margin: 0; font-size: 14px;">
+                    <strong>注销后将发生：</strong><br>
+                    • 所有社员将无法登录<br>
+                    • 所有签到记录将被删除<br>
+                    • 社团数据将在管理员系统中保留30天<br>
+                    • 30天后数据将被永久删除
+                </p>
+            </div>
+            <div class="form-group">
+                <label>请输入学校名称确认：</label>
+                <input type="text" id="confirmSchoolName" placeholder="请输入学校名称">
+            </div>
+            <div class="form-group">
+                <label>请输入社团名称确认：</label>
+                <input type="text" id="confirmClubName" placeholder="请输入社团名称">
+            </div>
+            <div class="form-group">
+                <label>密保问题：</label>
+                <input type="text" id="confirmSecurityQuestion" readonly style="background: #f5f5f5;">
+            </div>
+            <div class="form-group">
+                <label>请输入密保答案：</label>
+                <input type="text" id="confirmSecurityAnswer" placeholder="请输入密保答案">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="closeDeleteClubModal()" style="flex: 1;">取消</button>
+                <button class="btn btn-danger" onclick="confirmDeleteClub()" style="flex: 1; background: #ff6b6b; border-color: #ff6b6b;">确认注销</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 活动编辑弹窗 -->
+    <div id="activityEditModal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close" onclick="closeActivityEditModal()">&times;</span>
+            <h2>📅 编辑活动</h2>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <p style="margin: 0; color: #666; font-size: 14px;">
+                    <strong>活动日期：</strong><span id="editActivityDate"></span>
+                </p>
+            </div>
+            
+            <div class="form-group">
+                <label>活动名称：</label>
+                <input type="text" id="editActivityName" placeholder="请输入活动名称" maxlength="50">
+            </div>
+            
+            <div class="form-group">
+                <label>活动描述：</label>
+                <textarea id="editActivityDescription" placeholder="请输入活动描述（可选）" rows="3" maxlength="200"></textarea>
+            </div>
+            
+            <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #2196f3;">
+                <h4 style="margin: 0 0 10px 0; color: #1976d2;">CAS活动时长设置</h4>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                    <div class="form-group" style="margin: 0;">
+                        <label style="color: #667eea; font-weight: 600;">C类活动时长：</label>
+                        <input type="number" id="editTimeC" value="0" min="0" step="0.5" style="width: 100%;">
+                        <span style="font-size: 12px; color: #666;">小时</span>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label style="color: #f093fb; font-weight: 600;">A类活动时长：</label>
+                        <input type="number" id="editTimeA" value="0" min="0" step="0.5" style="width: 100%;">
+                        <span style="font-size: 12px; color: #666;">小时</span>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label style="color: #4facfe; font-weight: 600;">S类活动时长：</label>
+                        <input type="number" id="editTimeS" value="0" min="0" step="0.5" style="width: 100%;">
+                        <span style="font-size: 12px; color: #666;">小时</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="closeActivityEditModal()" style="flex: 1;">取消</button>
+                <button class="btn btn-danger" onclick="deleteActivity()" style="flex: 1; background: #ff6b6b; border-color: #ff6b6b;">删除活动</button>
+                <button class="btn btn-primary" onclick="saveActivity()" style="flex: 1;">保存活动</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 申请加入社团弹窗 -->
+    <div id="joinClubModal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close" onclick="closeJoinClubModal()">&times;</span>
+            <h2>🏛️ 申请加入社团</h2>
+            <div class="form-group">
+                <label>社团号：</label>
+                <input type="text" id="joinClubId" placeholder="请输入社团号">
+            </div>
+            <div class="form-group">
+                <label>申请说明：</label>
+                <textarea id="joinClubReason" placeholder="请说明申请加入的原因（可选）" rows="3" maxlength="200"></textarea>
+            </div>
+            <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #2196f3;">
+                <p style="margin: 0; color: #1976d2; font-size: 14px;">
+                    <strong>申请流程：</strong><br>
+                    1. 输入社团号提交申请<br>
+                    2. 等待社长审核<br>
+                    3. 审核通过后即可参与该社团的活动
+                </p>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="closeJoinClubModal()" style="flex: 1;">取消</button>
+                <button class="btn btn-primary" onclick="submitJoinClubApplication()" style="flex: 1;">提交申请</button>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script src="main.js"></script>
+</body>
+</html>

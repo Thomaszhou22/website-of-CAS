@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员后台 - 社团签到系统</title>
+    <link rel="stylesheet" href="admin-style.css">
+</head>
+<body>
+    <!-- 登录页面 -->
+    <div id="loginPage" class="page">
+        <div class="login-container">
+            <h1>🧑‍💼 管理员后台</h1>
+            <div class="login-form">
+                <h2>管理员登录</h2>
+                <div class="form-group">
+                    <label>管理员账号：</label>
+                    <input type="text" id="adminUsername" placeholder="请输入账号">
+                </div>
+                <div class="form-group">
+                    <label>管理员密码：</label>
+                    <input type="password" id="adminPassword" placeholder="请输入密码">
+                </div>
+                <button class="btn btn-primary" onclick="adminLogin()">登录</button>
+                <button class="btn btn-secondary" onclick="showAdminRegister()" style="width: 100%; margin-top: 10px;">注册管理员</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 管理员后台页面 -->
+    <div id="adminPage" class="page" style="display:none;">
+        <div class="header">
+            <h1>🧑‍💼 管理后台</h1>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" onclick="showChangePassword()">修改密码</button>
+                <button class="btn btn-danger" onclick="showDeleteAccount()" style="background: #dc3545; border-color: #dc3545;">注销账号</button>
+                <button class="btn btn-secondary" onclick="logout()">退出</button>
+            </div>
+        </div>
+        
+        <div class="admin-container">
+            <div class="admin-stats">
+                <div class="stat-box">
+                    <h3>总社团数</h3>
+                    <div class="stat-value" id="totalClubs">0</div>
+                </div>
+                <div class="stat-box">
+                    <h3>总社员数</h3>
+                    <div class="stat-value" id="totalMembers">0</div>
+                </div>
+                <div class="stat-box">
+                    <h3>总签到数</h3>
+                    <div class="stat-value" id="totalCheckins">0</div>
+                </div>
+            </div>
+            
+            <div class="admin-content">
+                <div style="display: flex; gap: 20px; margin-bottom: 30px;">
+                    <button class="btn btn-primary" onclick="showActiveClubs()" id="activeClubsBtn">活跃社团</button>
+                    <button class="btn btn-secondary" onclick="showDeletedClubs()" id="deletedClubsBtn">已删除社团</button>
+                    <button class="btn btn-secondary" onclick="showAllMembers()" id="allMembersBtn">所有社员</button>
+                </div>
+                <h2 id="sectionTitle">所有社团信息</h2>
+                <div class="clubs-list" id="clubsList"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 管理员注册弹窗 -->
+    <div id="adminRegisterModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeAdminRegister()">&times;</span>
+            <h2>注册管理员</h2>
+            <div class="form-group">
+                <label>管理员账号：</label>
+                <input type="text" id="newAdminUsername" placeholder="请输入账号">
+            </div>
+            <div class="form-group">
+                <label>学校名称：</label>
+                <input type="text" id="newAdminSchool" placeholder="请输入学校名称">
+            </div>
+            <div class="form-group">
+                <label>管理员密码：</label>
+                <input type="password" id="newAdminPassword" placeholder="请输入密码">
+            </div>
+            <div class="form-group">
+                <label>确认密码：</label>
+                <input type="password" id="confirmAdminPassword" placeholder="请再次输入密码">
+            </div>
+            <button class="btn btn-primary" onclick="registerAdmin()">注册</button>
+        </div>
+    </div>
+    
+    <!-- 修改密码弹窗 -->
+    <div id="changePasswordModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeChangePassword()">&times;</span>
+            <h2>修改密码</h2>
+            <div class="form-group">
+                <label>当前密码：</label>
+                <input type="password" id="currentPassword" placeholder="请输入当前密码">
+            </div>
+            <div class="form-group">
+                <label>新密码：</label>
+                <input type="password" id="newPassword" placeholder="请输入新密码">
+            </div>
+            <div class="form-group">
+                <label>确认新密码：</label>
+                <input type="password" id="confirmNewPassword" placeholder="请再次输入新密码">
+            </div>
+            <button class="btn btn-primary" onclick="changePassword()">修改</button>
+        </div>
+    </div>
+
+    <!-- 删除社团确认弹窗 -->
+    <div id="deleteClubModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeDeleteClubModal()">&times;</span>
+            <h2 style="color: #ff6b6b;">⚠️ 删除社团确认</h2>
+            <div style="background: #fff5f5; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #ffebee;">
+                <p style="color: #d32f2f; font-size: 16px; margin: 0; font-weight: 600;">
+                    您确定要删除社团吗？
+                </p>
+            </div>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <p style="color: #666; margin: 0; font-size: 14px;">
+                    <strong>删除后将发生：</strong><br>
+                    • 社团将从系统中完全移除<br>
+                    • 所有社员将无法登录该社团<br>
+                    • 所有签到记录将被删除<br>
+                    • 社团数据将移动到已删除列表
+                </p>
+            </div>
+            <div class="form-group">
+                <label>请输入管理员密码确认：</label>
+                <input type="password" id="confirmDeletePassword" placeholder="请输入管理员密码">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="closeDeleteClubModal()" style="flex: 1;">取消</button>
+                <button class="btn btn-danger" onclick="confirmDeleteClub()" style="flex: 1; background: #ff6b6b; border-color: #ff6b6b;">确认删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 永久删除社团确认弹窗 -->
+    <div id="permanentDeleteClubModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="closePermanentDeleteClubModal()">&times;</span>
+            <h2 style="color: #ff6b6b;">⚠️ 永久删除社团确认</h2>
+            <div style="background: #fff5f5; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #ffebee;">
+                <p style="color: #d32f2f; font-size: 16px; margin: 0; font-weight: 600;">
+                    您确定要永久删除社团吗？
+                </p>
+            </div>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <p style="color: #666; margin: 0; font-size: 14px;">
+                    <strong>永久删除后将发生：</strong><br>
+                    • 社团数据将被彻底删除<br>
+                    • 所有相关记录将无法恢复<br>
+                    • 此操作不可撤销！
+                </p>
+            </div>
+            <div class="form-group">
+                <label>请输入管理员密码确认：</label>
+                <input type="password" id="confirmPermanentDeletePassword" placeholder="请输入管理员密码">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="closePermanentDeleteClubModal()" style="flex: 1;">取消</button>
+                <button class="btn btn-danger" onclick="confirmPermanentDeleteClub()" style="flex: 1; background: #ff6b6b; border-color: #ff6b6b;">确认永久删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 注销账号确认弹窗 -->
+    <div id="deleteAccountModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeDeleteAccountModal()">&times;</span>
+            <h2 style="color: #dc3545;">⚠️ 注销管理员账号确认</h2>
+            <div style="background: #fff5f5; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #ffebee;">
+                <p style="color: #d32f2f; font-size: 16px; margin: 0; font-weight: 600;">
+                    您确定要注销管理员账号吗？
+                </p>
+            </div>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <p style="color: #666; margin: 0; font-size: 14px;">
+                    <strong>注销后将发生：</strong><br>
+                    • 管理员账号将被永久删除<br>
+                    • 您将无法使用此账号登录<br>
+                    • 此操作不可撤销！<br>
+                    • 系统数据将保留，但需要重新注册管理员账号
+                </p>
+            </div>
+            <div class="form-group">
+                <label>请输入管理员密码确认：</label>
+                <input type="password" id="confirmDeleteAccountPassword" placeholder="请输入管理员密码">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="closeDeleteAccountModal()" style="flex: 1;">取消</button>
+                <button class="btn btn-danger" onclick="confirmDeleteAccount()" style="flex: 1; background: #dc3545; border-color: #dc3545;">确认注销</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
