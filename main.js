@@ -2,8 +2,10 @@
 let clubs = JSON.parse(localStorage.getItem('clubs')) || {};
 let deletedClubs = JSON.parse(localStorage.getItem('deletedClubs')) || {}; // 存储已删除的社团
 let globalMembers = JSON.parse(localStorage.getItem('globalMembers')) || {}; // 全局社员数据
+let admins = JSON.parse(localStorage.getItem('admins')) || {}; // 管理员数据
 let currentClub = null;
 let currentUser = null;
+let currentView = 'active'; // 管理员视图：'active', 'deleted', 或 'members'
 
 // 日历相关变量
 let currentCalendarDate = new Date();
@@ -11,7 +13,15 @@ let selectedActivityDate = null;
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
-    initializeLoginInterface();
+    console.log('页面加载完成，开始初始化...');
+    console.log('当前currentUser:', currentUser);
+    console.log('当前活动页面:', document.querySelector('.page.active')?.id);
+    
+    // 立即执行一次强制重置，确保页面状态正确
+    setTimeout(() => {
+        forceResetPageState();
+        initializeLoginInterface();
+    }, 100);
 });
 
 // 备用初始化 - 如果DOMContentLoaded没有触发
@@ -28,10 +38,70 @@ window.addEventListener('load', () => {
     initializeLoginInterface();
 });
 
+// 强制重置页面状态
+function forceResetPageState() {
+    console.log('=== 强制重置页面状态 ===');
+    
+    // 重置用户状态
+    currentUser = null;
+    currentClub = null;
+    
+    // 重置所有页面为隐藏状态
+    const allPages = document.querySelectorAll('.page');
+    allPages.forEach(page => {
+        page.classList.remove('active');
+    });
+    
+    // 确保只有登录页面显示
+    const loginPage = document.getElementById('loginPage');
+    if (loginPage) {
+        loginPage.classList.add('active');
+        console.log('已设置登录页面为活动状态');
+    }
+    
+    // 重置登录表单
+    const loginInputs = [
+        'captainId', 'captainPwd', 
+        'memberName', 'memberPwd', 
+        'adminUsername', 'adminPassword'
+    ];
+    
+    loginInputs.forEach(inputId => {
+        const input = document.getElementById(inputId);
+        if (input) {
+            input.value = '';
+        }
+    });
+    
+    // 重置标签页状态
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    tabButtons.forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // 设置社长标签页为默认活动状态
+    const captainTab = document.querySelector('.tab-btn[data-role="captain"]');
+    if (captainTab) {
+        captainTab.classList.add('active');
+        switchLoginForm('captain');
+    }
+    
+    console.log('页面状态重置完成');
+    console.log('当前活动页面:', document.querySelector('.page.active')?.id);
+}
+
+// 全局可用的重置函数（用于调试和紧急修复）
+window.forceResetPageState = forceResetPageState;
+
 // 备用初始化方法
 function initializeLoginInterface() {
     try {
         console.log('开始初始化登录界面...');
+        console.log('初始化前currentUser:', currentUser);
+        console.log('初始化前活动页面:', document.querySelector('.page.active')?.id);
+        
+        // 强制重置页面状态，确保从正确的状态开始
+        forceResetPageState();
         
         // 防止重复初始化
         if (window.loginInterfaceInitialized) {
@@ -57,6 +127,8 @@ function initializeLoginInterface() {
         window.loginInterfaceInitialized = true;
         
         console.log('登录界面初始化完成');
+        console.log('初始化后currentUser:', currentUser);
+        console.log('初始化后活动页面:', document.querySelector('.page.active')?.id);
         
     } catch (error) {
         console.error('初始化登录界面时出错:', error);
@@ -127,6 +199,7 @@ function emergencyFix() {
 function switchLoginForm(role) {
     document.getElementById('captainLogin').style.display = role === 'captain' ? 'block' : 'none';
     document.getElementById('memberLogin').style.display = role === 'member' ? 'block' : 'none';
+    document.getElementById('adminLogin').style.display = role === 'admin' ? 'block' : 'none';
 }
 
 // 测试学校验证功能
@@ -843,7 +916,7 @@ function getAllAdminClubs() {
         Object.assign(allClubs, adminClubs);
     }
     
-    // 也包含待审核的社团
+    // 也包含待审核的社团（用于登录时的状态检查）
     const pendingClubs = JSON.parse(localStorage.getItem('pendingClubs')) || {};
     Object.assign(allClubs, pendingClubs);
     
@@ -927,14 +1000,27 @@ function selectSchoolFromModal(schoolName) {
     const memberRegisterModal = document.getElementById('memberRegisterModal');
     const regMemberSchoolField = document.getElementById('regMemberSchool');
     
-    if (registerModal && registerModal.style.display !== 'none' && schoolNameField) {
+    // 检查忘记社团号界面是否可见
+    const forgotIdModal = document.getElementById('forgotIdModal');
+    const forgotSchoolNameField = document.getElementById('forgotSchoolName');
+    
+    // 检查各个模态框的显示状态
+    const isRegisterModalVisible = registerModal && (registerModal.style.display !== 'none' && registerModal.style.display !== '');
+    const isMemberRegisterModalVisible = memberRegisterModal && (memberRegisterModal.style.display !== 'none' && memberRegisterModal.style.display !== '');
+    const isForgotIdModalVisible = forgotIdModal && (forgotIdModal.style.display !== 'none' && forgotIdModal.style.display !== '');
+    
+    if (isRegisterModalVisible && schoolNameField) {
         // 社团注册界面可见，填充社团注册的学校字段
         schoolNameField.value = schoolName;
         console.log('已填充社团注册界面的学校名称:', schoolName);
-    } else if (memberRegisterModal && memberRegisterModal.style.display !== 'none' && regMemberSchoolField) {
+    } else if (isMemberRegisterModalVisible && regMemberSchoolField) {
         // 社员注册界面可见，填充社员注册的学校字段
         regMemberSchoolField.value = schoolName;
         console.log('已填充社员注册界面的学校名称:', schoolName);
+    } else if (isForgotIdModalVisible && forgotSchoolNameField) {
+        // 忘记社团号界面可见，填充忘记社团号的学校字段
+        forgotSchoolNameField.value = schoolName;
+        console.log('已填充忘记社团号界面的学校名称:', schoolName);
     } else {
         // 默认填充社团注册字段（向后兼容）
         if (schoolNameField) {
@@ -1078,7 +1164,7 @@ function createClub() {
         password: clubPwd,
         securityQuestion: securityQuestion,
         securityAnswer: securityAnswer,
-        status: 'pending', // 待审核状态
+        status: 'approved', // 直接审核通过，无需管理员审核
         checkinCode: '',
         activityDate: getLocalDateString(new Date()),
         timeSettings: { C: 0, A: 0, S: 0 },
@@ -1088,16 +1174,43 @@ function createClub() {
         checkins: []
     };
     
-    // 保存到待审核区域（全局存储）
-    const pendingClubs = JSON.parse(localStorage.getItem('pendingClubs')) || {};
-    pendingClubs[clubId] = newClub;
-    localStorage.setItem('pendingClubs', JSON.stringify(pendingClubs));
+    // 获取对应的管理员并保存到其数据中
+    const admins = JSON.parse(localStorage.getItem('admins') || '{}');
+    let saved = false;
     
-    console.log('社团已保存到待审核区域:', clubId, newClub);
+    for (const adminUsername in admins) {
+        const admin = admins[adminUsername];
+        if (admin.school === schoolName) {
+            const adminKey = `admin_${adminUsername}`;
+            const adminData = JSON.parse(localStorage.getItem(adminKey) || '{}');
+            
+            // 确保数据结构存在
+            if (!adminData.clubs) {
+                adminData.clubs = {};
+            }
+            
+            // 保存社团到该管理员的数据中
+            adminData.clubs[clubId] = newClub;
+            localStorage.setItem(adminKey, JSON.stringify(adminData));
+            saved = true;
+            console.log('社团已保存到管理员数据:', adminUsername, clubId);
+            break;
+        }
+    }
+    
+    // 如果没有找到对应的管理员，保存到全局clubs
+    if (!saved) {
+        const allClubs = JSON.parse(localStorage.getItem('clubs') || '{}');
+        allClubs[clubId] = newClub;
+        localStorage.setItem('clubs', JSON.stringify(allClubs));
+        console.log('社团已保存到全局clubs:', clubId);
+    }
+    
+    console.log('社团创建成功:', clubId, newClub);
     closeRegister();
     
     // 显示社团号并复制
-    showClubIdResult(clubId, '社团申请已提交！\n等待管理员审核通过后即可使用。');
+    showClubIdResult(clubId, '社团创建成功！\n现在可以使用社团号登录了。');
 }
 
 // 社长登录
@@ -1107,7 +1220,7 @@ function captainLogin() {
 
     // 在所有管理员的数据和待审核区域中查找社团
     const allClubs = getAllAdminClubs();
-    
+
     if (!allClubs[clubId]) {
         alert('社团号不存在');
         return;
@@ -1119,25 +1232,36 @@ function captainLogin() {
     }
 
     // 检查社团状态
-    if (allClubs[clubId].status === 'pending') {
+    const club = allClubs[clubId];
+    
+    if (club.status === 'pending') {
         alert('社团正在审核中，请等待管理员审核通过');
         return;
     }
 
-    if (allClubs[clubId].status === 'rejected') {
+    if (club.status === 'rejected') {
         alert('社团审核未通过');
         return;
     }
 
-    currentClub = allClubs[clubId];
+    // 如果社团没有状态字段，检查是否在待审核列表中
+    if (!club.status) {
+        const pendingClubs = JSON.parse(localStorage.getItem('pendingClubs') || '{}');
+        if (pendingClubs[clubId]) {
+            alert('社团正在审核中，请等待管理员审核通过');
+            return;
+        }
+    }
+
+    currentClub = club;
     currentUser = { type: 'captain', clubId };
     
     // 检查并执行自动更新
     checkAndAutoUpdateDate();
     
     // 切换到社长页面
-    document.getElementById('loginPage').style.display = 'none';
-    document.getElementById('captainPage').style.display = 'block';
+    document.getElementById('loginPage').classList.remove('active');
+    document.getElementById('captainPage').classList.add('active');
     
     loadCaptainPage();
 }
@@ -1283,6 +1407,525 @@ function testClubDeletionNotification() {
     console.log('\n=== 社团注销通知功能测试完成 ===');
 }
 
+// ==================== 管理员系统功能 ====================
+
+// 验证数据隔离
+function verifyDataIsolation() {
+    console.log('=== 数据隔离验证 ===');
+    console.log('当前登录管理员:', currentUser ? currentUser.username : '未登录');
+    console.log('管理员数据键:', `admin_${currentUser ? currentUser.username : 'none'}`);
+    console.log('当前管理员数据:', {
+        clubs: Object.keys(clubs).length,
+        deletedClubs: Object.keys(deletedClubs).length,
+        globalMembers: Object.keys(globalMembers).length
+    });
+    
+    // 检查localStorage中的所有管理员数据
+    const allKeys = Object.keys(localStorage);
+    const adminKeys = allKeys.filter(key => key.startsWith('admin_'));
+    console.log('所有管理员数据键:', adminKeys);
+    
+    adminKeys.forEach(key => {
+        const data = JSON.parse(localStorage.getItem(key) || '{}');
+        console.log(`${key}:`, {
+            clubs: Object.keys(data.clubs || {}).length,
+            deletedClubs: Object.keys(data.deletedClubs || {}).length,
+            globalMembers: Object.keys(data.globalMembers || {}).length
+        });
+    });
+    console.log('=== 验证完成 ===');
+}
+
+// 加载当前管理员的数据
+function loadCurrentAdminData() {
+    if (!currentUser || currentUser.type !== 'admin') {
+        return;
+    }
+    
+    const adminKey = `admin_${currentUser.username}`;
+    const adminData = JSON.parse(localStorage.getItem(adminKey)) || {
+        clubs: {},
+        deletedClubs: {},
+        globalMembers: {}
+    };
+    
+    clubs = adminData.clubs || {};
+    deletedClubs = adminData.deletedClubs || {};
+    globalMembers = adminData.globalMembers || {};
+    
+    // 清理可能存在的全局数据（确保数据隔离）
+    const globalDeletedClubs = localStorage.getItem('deletedClubs');
+    if (globalDeletedClubs) {
+        console.log('发现全局已删除社团数据，正在同步到管理员数据中...');
+        
+        // 同步全局已删除社团到当前管理员数据
+        const globalDeletedClubsData = JSON.parse(globalDeletedClubs);
+        Object.keys(globalDeletedClubsData).forEach(clubId => {
+            if (!deletedClubs[clubId]) {
+                deletedClubs[clubId] = globalDeletedClubsData[clubId];
+                console.log(`同步已删除社团到管理员数据: ${clubId}`);
+            }
+        });
+        
+        // 保存更新后的管理员数据
+        saveCurrentAdminData();
+        
+        // 清理全局数据
+        localStorage.removeItem('deletedClubs');
+    }
+    
+    console.log('加载管理员数据:', currentUser.username, {
+        clubs: Object.keys(clubs).length,
+        deletedClubs: Object.keys(deletedClubs).length,
+        globalMembers: Object.keys(globalMembers).length
+    });
+}
+
+// 保存当前管理员的数据
+function saveCurrentAdminData() {
+    if (!currentUser || currentUser.type !== 'admin') {
+        return;
+    }
+    
+    const adminKey = `admin_${currentUser.username}`;
+    const adminData = {
+        clubs: clubs,
+        deletedClubs: deletedClubs,
+        globalMembers: globalMembers
+    };
+    
+    localStorage.setItem(adminKey, JSON.stringify(adminData));
+    console.log('保存管理员数据:', currentUser.username);
+}
+
+// 清理过期的已删除社团数据
+function cleanupExpiredDeletedClubs() {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    for (const clubId in deletedClubs) {
+        const deletedDate = new Date(deletedClubs[clubId].deletedAt);
+        if (deletedDate < thirtyDaysAgo) {
+            delete deletedClubs[clubId];
+        }
+    }
+    
+    if (Object.keys(deletedClubs).length === 0) {
+        console.log('已清理过期的已删除社团数据');
+    }
+}
+
+// 保存管理员数据
+function saveAdminData() {
+    localStorage.setItem('admins', JSON.stringify(admins));
+}
+
+// 显示管理员注册弹窗
+function showAdminRegister() {
+    document.getElementById('adminRegisterModal').style.display = 'flex';
+}
+
+function closeAdminRegister() {
+    document.getElementById('adminRegisterModal').style.display = 'none';
+    document.getElementById('newAdminUsername').value = '';
+    document.getElementById('newAdminSchool').value = '';
+    document.getElementById('newAdminKey').value = '';
+    document.getElementById('newAdminPassword').value = '';
+    document.getElementById('confirmAdminPassword').value = '';
+}
+
+// 注册管理员
+function registerAdmin() {
+    const username = document.getElementById('newAdminUsername').value.trim();
+    const school = document.getElementById('newAdminSchool').value.trim();
+    const adminKeyInput = document.getElementById('newAdminKey').value;
+    const password = document.getElementById('newAdminPassword').value;
+    const confirmPassword = document.getElementById('confirmAdminPassword').value;
+    
+    if (!username || !school || !adminKeyInput || !password || !confirmPassword) {
+        alert('请填写完整信息');
+        return;
+    }
+    
+    // 验证管理员密钥
+    if (adminKeyInput !== '081015') {
+        alert('管理员密钥错误，无法注册');
+        return;
+    }
+    
+    if (password !== confirmPassword) {
+        alert('两次输入的密码不一致');
+        return;
+    }
+    
+    if (admins[username]) {
+        alert('该管理员账号已存在');
+        return;
+    }
+    
+    // 创建管理员账号
+    admins[username] = {
+        username: username,
+        password: password,
+        school: school,
+        type: 'admin'
+    };
+    
+    // 创建管理员专属数据存储
+    const adminDataKey = `admin_${username}`;
+    const adminData = {
+        clubs: {},
+        deletedClubs: {},
+        globalMembers: {}
+    };
+    localStorage.setItem(adminDataKey, JSON.stringify(adminData));
+    
+    // 保存管理员列表
+    saveAdminData();
+    
+    closeAdminRegister();
+    alert('管理员注册成功！');
+}
+
+// 管理员登录
+function adminLogin() {
+    const username = document.getElementById('adminUsername').value.trim();
+    const password = document.getElementById('adminPassword').value;
+    
+    if (!username || !password) {
+        alert('请输入管理员账号和密码');
+        return;
+    }
+
+    if (!admins[username] || admins[username].password !== password) {
+        alert('管理员账号或密码错误');
+        return;
+    }
+    
+    // 登录成功
+    currentUser = {
+        type: 'admin',
+        username: username,
+        password: password,
+        school: admins[username].school
+    };
+    
+    // 加载管理员数据
+    loadCurrentAdminData();
+    
+    // 切换到管理员页面
+    document.getElementById('loginPage').classList.remove('active');
+    document.getElementById('adminPage').classList.add('active');
+    
+    loadAdminPage();
+}
+
+// 加载管理员页面
+function loadAdminPage() {
+    if (!currentUser || currentUser.type !== 'admin') {
+        return;
+    }
+    
+    // 清理过期的已删除社团数据
+    cleanupExpiredDeletedClubs();
+    
+    // 更新统计信息
+    const totalClubs = Object.keys(clubs).length;
+    const totalMembers = Object.keys(globalMembers).length;
+    const totalCheckins = Object.values(clubs).reduce((sum, club) => {
+        return sum + (club.checkins ? club.checkins.length : 0);
+    }, 0);
+    
+    document.getElementById('totalClubs').textContent = totalClubs;
+    document.getElementById('totalMembers').textContent = totalMembers;
+    document.getElementById('totalCheckins').textContent = totalCheckins;
+    
+    // 默认显示活跃社团
+    showActiveClubs();
+}
+
+// 显示活跃社团
+function showActiveClubs() {
+    currentView = 'active';
+    document.getElementById('sectionTitle').textContent = '活跃社团';
+    document.getElementById('activeClubsBtn').className = 'btn btn-primary';
+    document.getElementById('deletedClubsBtn').className = 'btn btn-secondary';
+    document.getElementById('allMembersBtn').className = 'btn btn-secondary';
+    loadClubsList();
+}
+
+// 显示已删除社团
+function showDeletedClubs() {
+    currentView = 'deleted';
+    document.getElementById('sectionTitle').textContent = '已删除社团';
+    document.getElementById('activeClubsBtn').className = 'btn btn-secondary';
+    document.getElementById('deletedClubsBtn').className = 'btn btn-primary';
+    document.getElementById('allMembersBtn').className = 'btn btn-secondary';
+    loadDeletedClubsList();
+}
+
+// 显示所有社员
+function showAllMembers() {
+    currentView = 'members';
+    document.getElementById('sectionTitle').textContent = '所有社员概况';
+    document.getElementById('activeClubsBtn').className = 'btn btn-secondary';
+    document.getElementById('deletedClubsBtn').className = 'btn btn-secondary';
+    document.getElementById('allMembersBtn').className = 'btn btn-primary';
+    loadAllMembersList();
+}
+
+// 加载社团列表
+function loadClubsList() {
+    const container = document.getElementById('clubsList');
+    
+    // 获取待审核的社团
+    const pendingClubs = JSON.parse(localStorage.getItem('pendingClubs')) || {};
+    
+    // 过滤出同学校的社团（包括待审核的）
+    const sameSchoolClubs = Object.values(clubs).filter(club => {
+        return club.schoolName === currentUser.school;
+    });
+    
+    const sameSchoolPendingClubs = Object.values(pendingClubs).filter(club => {
+        return club.schoolName === currentUser.school;
+    });
+    
+    console.log('加载社团列表');
+    console.log('活跃社团数量:', sameSchoolClubs.length);
+    console.log('待审核社团数量:', sameSchoolPendingClubs.length);
+    
+    if (sameSchoolClubs.length === 0 && sameSchoolPendingClubs.length === 0) {
+        container.innerHTML = '<p style="color: #999; text-align: center; padding: 40px;">暂无同学校社团</p>';
+        return;
+    }
+    
+    let html = '';
+    
+    // 显示待审核社团
+    if (sameSchoolPendingClubs.length > 0) {
+        html += '<h3 style="color: #ff9800; margin-bottom: 15px;">⏳ 待审核社团</h3>';
+        sameSchoolPendingClubs.forEach(club => {
+            html += `
+                <div class="club-item" style="background: #fff3e0; border-left: 4px solid #ff9800;">
+                    <div class="club-info">
+                        <h3>${club.name}</h3>
+                        <p><strong>社团号：</strong>${club.id}</p>
+                        <p><strong>学校：</strong>${club.schoolName}</p>
+                        <p><strong>社长：</strong>${club.captain}</p>
+                        <p><strong>状态：</strong><span style="color: #ff9800;">待审核</span></p>
+                    </div>
+                    <div class="club-actions">
+                        <button class="btn btn-success btn-small" onclick="approveClub('${club.id}')">通过审核</button>
+                        <button class="btn btn-danger btn-small" onclick="rejectClub('${club.id}')">拒绝审核</button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    // 显示活跃社团
+    if (sameSchoolClubs.length > 0) {
+        if (sameSchoolPendingClubs.length > 0) {
+            html += '<h3 style="color: #4caf50; margin: 30px 0 15px 0;">✅ 活跃社团</h3>';
+        }
+        
+        sameSchoolClubs.forEach(club => {
+            const memberCount = Object.keys(club.members || {}).length;
+            const checkinCount = club.checkins ? club.checkins.length : 0;
+            
+            html += `
+                <div class="club-item">
+                    <div class="club-info">
+                        <h3>${club.name}</h3>
+                        <p><strong>社团号：</strong>${club.id}</p>
+                        <p><strong>学校：</strong>${club.schoolName}</p>
+                        <p><strong>社长：</strong>${club.captain}</p>
+                        <p><strong>社员数：</strong>${memberCount}</p>
+                        <p><strong>签到数：</strong>${checkinCount}</p>
+                    </div>
+                    <div class="club-actions">
+                        <button class="btn btn-view btn-small" onclick="viewClubDetails('${club.id}')">查看详情</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteClub('${club.id}')">删除社团</button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    container.innerHTML = html;
+}
+
+// 加载已删除社团列表
+function loadDeletedClubsList() {
+    const container = document.getElementById('clubsList');
+    
+    // 过滤出同学校的已删除社团
+    const sameSchoolDeletedClubs = Object.values(deletedClubs).filter(club => {
+        return club.schoolName === currentUser.school;
+    });
+    
+    console.log('加载已删除社团列表');
+    console.log('已删除社团数量:', Object.keys(deletedClubs).length);
+    console.log('同学校已删除社团数量:', sameSchoolDeletedClubs.length);
+    console.log('已删除社团数据:', deletedClubs);
+    
+    if (sameSchoolDeletedClubs.length === 0) {
+        console.log('没有同学校已删除社团，显示空状态');
+        container.innerHTML = '<p style="color: #999; text-align: center; padding: 40px;">暂无同学校已删除社团</p>';
+        return;
+    }
+    
+    const html = sameSchoolDeletedClubs.map(club => {
+        const deletedDate = new Date(club.deletedAt).toLocaleDateString('zh-CN');
+        const memberCount = Object.keys(club.members || {}).length;
+        const checkinCount = club.checkins ? club.checkins.length : 0;
+        
+        return `
+            <div class="club-item" style="background: #f5f5f5; border-left: 4px solid #999;">
+                <div class="club-info">
+                    <h3>${club.name}</h3>
+                    <p><strong>社团号：</strong>${club.id}</p>
+                    <p><strong>学校：</strong>${club.schoolName}</p>
+                    <p><strong>社长：</strong>${club.captain}</p>
+                    <p><strong>社员数：</strong>${memberCount}</p>
+                    <p><strong>签到数：</strong>${checkinCount}</p>
+                    <p><strong>删除时间：</strong>${deletedDate}</p>
+                    <p><strong>删除方式：</strong>${club.deletedBy === 'self' ? '社长自主注销' : '管理员删除'}</p>
+                </div>
+                <div class="club-actions">
+                    <button class="btn btn-view btn-small" onclick="viewDeletedClubDetails('${club.id}')">查看详情</button>
+                    <button class="btn btn-success btn-small" onclick="restoreClub('${club.id}')">恢复社团</button>
+                    <button class="btn btn-danger btn-small" onclick="permanentDeleteClub('${club.id}')">永久删除</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = html;
+}
+
+// 加载所有社员列表
+function loadAllMembersList() {
+    const container = document.getElementById('clubsList');
+    
+    // 统计活跃社团中的社员数据（来源于各个社团的统计）
+    const adminSchool = currentUser.school || '';
+    const memberStatistics = new Map(); // 存储社员统计数据
+    
+    for (const clubId in clubs) {
+        const club = clubs[clubId];
+        if (club.schoolName === adminSchool) {
+            Object.keys(club.members).forEach(memberName => {
+                if (!memberStatistics.has(memberName)) {
+                    memberStatistics.set(memberName, {
+                        name: memberName,
+                        joinedClubs: [],
+                        totalCheckins: 0,
+                        totalCAS: { C: 0, A: 0, S: 0, total: 0 },
+                        clubDetails: []
+                    });
+                }
+                
+                const memberStats = memberStatistics.get(memberName);
+                memberStats.joinedClubs.push(`${club.name} (${clubId})`);
+                
+                // 统计该社员在该社团的签到次数和CAS时间
+                const memberCheckins = club.checkins.filter(c => c.memberName === memberName && c.status === 'approved');
+                memberStats.totalCheckins += memberCheckins.length;
+                
+                memberCheckins.forEach(checkin => {
+                    const timeSettings = checkin.timeSettings || {};
+                    memberStats.totalCAS.C += timeSettings.C || 0;
+                    memberStats.totalCAS.A += timeSettings.A || 0;
+                    memberStats.totalCAS.S += timeSettings.S || 0;
+                });
+                
+                memberStats.totalCAS.total = memberStats.totalCAS.C + memberStats.totalCAS.A + memberStats.totalCAS.S;
+            });
+        }
+    }
+    
+    const sameSchoolMembers = Array.from(memberStatistics.values());
+    
+    console.log(`统计活跃社团中的社员数据: ${sameSchoolMembers.length} 个社员`);
+    
+    // 生成社员统计表格HTML
+    let membersTable = `
+        <div style="background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden;">
+            <div style="background: #667eea; color: white; padding: 15px; font-weight: bold;">
+                📊 社员概况统计 - ${adminSchool}
+            </div>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f8f9fa;">
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #ddd;">社员姓名</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 1px solid #ddd;">加入社团</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 1px solid #ddd;">社团数量</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 1px solid #ddd;">签到次数</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 1px solid #ddd;">C时间</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 1px solid #ddd;">A时间</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 1px solid #ddd;">S时间</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 1px solid #ddd;">总CAS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
+    
+    // 显示社团社员数据统计
+    let displayedMembersCount = 0;
+    
+    sameSchoolMembers.forEach(memberStats => {
+        console.log(`✅ 显示社员数据: ${memberStats.name}`);
+        console.log(`  加入社团: ${memberStats.joinedClubs.join(', ')}`);
+        console.log(`  总签到次数: ${memberStats.totalCheckins}`);
+        console.log(`  CAS时间: C=${memberStats.totalCAS.C}h, A=${memberStats.totalCAS.A}h, S=${memberStats.totalCAS.S}h, 总计=${memberStats.totalCAS.total}h`);
+        
+        displayedMembersCount++;
+        
+        // 处理加入社团的显示文本
+        const joinedClubsText = memberStats.joinedClubs.join(', ');
+        
+        membersTable += `
+            <tr style="border-bottom: 1px solid #f0f0f0;">
+                <td style="padding: 12px; font-weight: bold; color: #333;">${memberStats.name}</td>
+                <td style="padding: 12px; color: #666; max-width: 200px; word-wrap: break-word;">
+                    ${joinedClubsText.length > 50 ? joinedClubsText.substring(0, 50) + '...' : joinedClubsText}
+                </td>
+                <td style="padding: 12px; text-align: center; color: #4caf50; font-weight: bold;">${memberStats.joinedClubs.length}</td>
+                <td style="padding: 12px; text-align: center; color: #2196f3; font-weight: bold;">${memberStats.totalCheckins}</td>
+                <td style="padding: 12px; text-align: center; color: #ff9800; font-weight: bold;">${memberStats.totalCAS.C.toFixed(1)}h</td>
+                <td style="padding: 12px; text-align: center; color: #ff9800; font-weight: bold;">${memberStats.totalCAS.A.toFixed(1)}h</td>
+                <td style="padding: 12px; text-align: center; color: #ff9800; font-weight: bold;">${memberStats.totalCAS.S.toFixed(1)}h</td>
+                <td style="padding: 12px; text-align: center; color: #ff9800; font-weight: bold;">${memberStats.totalCAS.total.toFixed(1)}h</td>
+            </tr>
+        `;
+    });
+    
+    // 如果社团社员数据为空，显示提示信息
+    if (sameSchoolMembers.length === 0) {
+        membersTable += `
+            <tr>
+                <td colspan="8" style="padding: 40px; text-align: center; color: #999;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">📊</div>
+                    <h3 style="color: #666; margin-bottom: 10px;">暂无社团社员数据</h3>
+                    <p style="color: #999;">当前没有社员加入学校 "${adminSchool}" 的活跃社团</p>
+                </td>
+            </tr>
+        `;
+    }
+    
+    membersTable += `
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    
+    console.log(`实际显示的社团社员数据数量: ${displayedMembersCount}`);
+    container.innerHTML = membersTable;
+}
+
 // 清理孤立的社员（学校没有管理员的社员）
 function cleanupOrphanedMembers() {
     console.log('=== 开始清理孤立的社员 ===');
@@ -1294,7 +1937,7 @@ function cleanupOrphanedMembers() {
     const registeredSchools = [];
     Object.keys(admins).forEach(adminUsername => {
         const admin = admins[adminUsername];
-        if (admin.school && !registeredSchools.includes(admin.school)) {
+        if (admin && admin.school) {
             registeredSchools.push(admin.school);
         }
     });
@@ -1305,18 +1948,491 @@ function cleanupOrphanedMembers() {
     let cleanedCount = 0;
     Object.keys(globalMembers).forEach(memberName => {
         const member = globalMembers[memberName];
-        if (member.school && !registeredSchools.includes(member.school)) {
+        if (member && member.school && !registeredSchools.includes(member.school)) {
+            console.log(`清理孤立社员: ${memberName} (学校: ${member.school})`);
             delete globalMembers[memberName];
             cleanedCount++;
-            console.log(`清理孤立社员: ${memberName} (学校: ${member.school})`);
         }
     });
     
-    // 保存清理后的数据
+    if (cleanedCount > 0) {
+        localStorage.setItem('globalMembers', JSON.stringify(globalMembers));
+        console.log(`清理完成，共清理 ${cleanedCount} 个孤立社员`);
+    } else {
+        console.log('没有发现孤立的社员');
+    }
+    
+    console.log('=== 清理完成 ===');
+}
+
+// 测试管理员密钥功能
+function testAdminKeyFunction() {
+    console.log('=== 测试管理员密钥功能 ===');
+    
+    // 测试1: 验证密钥常量
+    const correctKey = '081015';
+    console.log('正确密钥:', correctKey);
+    
+    // 测试2: 模拟注册时的密钥验证
+    const testKeyInput = '081015';
+    const isValidKey = testKeyInput === correctKey;
+    console.log('注册时密钥验证结果:', isValidKey);
+    
+    // 测试3: 测试错误密钥
+    const wrongKey = '123456';
+    const isWrongKeyValid = wrongKey === correctKey;
+    console.log('错误密钥验证结果:', isWrongKeyValid);
+    
+    // 测试4: 说明密钥使用场景
+    console.log('密钥使用说明:');
+    console.log('- 注册管理员时需要输入密钥 "081015"');
+    console.log('- 登录管理员时不需要密钥，只需要账号和密码');
+    
+    console.log('=== 管理员密钥功能测试完成 ===');
+}
+
+// 管理员退出登录
+function logout() {
+    currentUser = null;
+    currentClub = null;
+    clubs = {};
+    deletedClubs = {};
+    globalMembers = {};
+    
+    document.getElementById('loginPage').classList.add('active');
+    document.getElementById('captainPage').classList.remove('active');
+    document.getElementById('memberPage').classList.remove('active');
+    document.getElementById('adminPage').classList.remove('active');
+    
+    // 重置登录表单
+    document.getElementById('captainId').value = '';
+    document.getElementById('captainPwd').value = '';
+    document.getElementById('memberName').value = '';
+    document.getElementById('memberPwd').value = '';
+    document.getElementById('adminUsername').value = '';
+    document.getElementById('adminPassword').value = '';
+    
+    // 重置标签页
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector('.tab-btn[data-role="captain"]').classList.add('active');
+    switchLoginForm('captain');
+}
+
+// 管理员相关弹窗函数
+function showChangePassword() {
+    document.getElementById('changePasswordModal').style.display = 'flex';
+}
+
+function closeChangePassword() {
+    document.getElementById('changePasswordModal').style.display = 'none';
+    document.getElementById('currentPassword').value = '';
+    document.getElementById('newPassword').value = '';
+    document.getElementById('confirmNewPassword').value = '';
+}
+
+function changePassword() {
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+    
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+        alert('请填写完整信息');
+        return;
+    }
+    
+    if (currentPassword !== currentUser.password) {
+        alert('当前密码错误');
+        return;
+    }
+    
+    if (newPassword !== confirmNewPassword) {
+        alert('两次输入的新密码不一致');
+        return;
+    }
+    
+    // 更新密码
+    admins[currentUser.username].password = newPassword;
+    currentUser.password = newPassword;
+    saveAdminData();
+    
+    closeChangePassword();
+    alert('密码修改成功！');
+}
+
+function showDeleteAccount() {
+    console.log('showDeleteAccount 函数被调用');
+    try {
+        const modal = document.getElementById('deleteAccountModal');
+        if (!modal) {
+            console.error('找不到 deleteAccountModal 元素');
+            alert('错误：找不到注销确认弹窗');
+            return;
+        }
+        console.log('找到弹窗元素，准备显示');
+        modal.style.display = 'flex';
+        console.log('弹窗显示成功');
+    } catch (error) {
+        console.error('显示注销弹窗时出错:', error);
+        alert('显示注销弹窗时出错: ' + error.message);
+    }
+}
+
+function closeDeleteAccountModal() {
+    document.getElementById('deleteAccountModal').style.display = 'none';
+    document.getElementById('confirmDeleteAccountPassword').value = '';
+}
+
+function confirmDeleteAccount() {
+    const password = document.getElementById('confirmDeleteAccountPassword').value;
+    
+    if (!password) {
+        alert('请输入管理员密码');
+        return;
+    }
+    
+    if (password !== currentUser.password) {
+        alert('密码错误');
+        return;
+    }
+    
+    // 确认注销操作
+    const confirmMessage = `确定要注销管理员账号 "${currentUser.username}" 吗？\n\n⚠️ 警告：此操作将同时注销学校 "${currentUser.school}" 的所有社团和社员！\n\n此操作不可撤销，请谨慎操作。`;
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    // 同步注销同一学校的所有社团和社员
+    const deletedCount = syncDeleteSchoolData(currentUser.school);
+    
+    // 删除管理员账号
+    delete admins[currentUser.username];
+    saveAdminData();
+    
+    // 清理管理员专属数据
+    const adminKey = `admin_${currentUser.username}`;
+    localStorage.removeItem(adminKey);
+    
+    closeDeleteAccountModal();
+    logout();
+    
+    alert(`管理员账号已成功注销！\n\n已同步删除学校 "${currentUser.school}" 的数据：\n- 社团: ${deletedCount.clubs} 个\n- 社员: ${deletedCount.members} 个\n- 已删除社团: ${deletedCount.deletedClubs} 个`);
+}
+
+// 同步删除学校数据
+function syncDeleteSchoolData(schoolName) {
+    console.log(`开始同步删除学校 "${schoolName}" 的所有数据`);
+    const deletedCount = { clubs: 0, members: 0, deletedClubs: 0 };
+    
+    // 1. 删除全局数据中该学校的社团
+    const globalClubs = JSON.parse(localStorage.getItem('clubs') || '{}');
+    Object.keys(globalClubs).forEach(clubId => {
+        const club = globalClubs[clubId];
+        if (club.schoolName === schoolName) {
+            delete globalClubs[clubId];
+            deletedCount.clubs++;
+        }
+    });
+    localStorage.setItem('clubs', JSON.stringify(globalClubs));
+    
+    // 2. 删除全局数据中该学校的已删除社团
+    const globalDeletedClubs = JSON.parse(localStorage.getItem('deletedClubs') || '{}');
+    Object.keys(globalDeletedClubs).forEach(clubId => {
+        const club = globalDeletedClubs[clubId];
+        if (club.schoolName === schoolName) {
+            delete globalDeletedClubs[clubId];
+            deletedCount.deletedClubs++;
+        }
+    });
+    localStorage.setItem('deletedClubs', JSON.stringify(globalDeletedClubs));
+    
+    // 3. 删除该学校的社员
+    const globalMembers = JSON.parse(localStorage.getItem('globalMembers') || '{}');
+    Object.keys(globalMembers).forEach(memberName => {
+        const member = globalMembers[memberName];
+        if (member.school === schoolName) {
+            delete globalMembers[memberName];
+            deletedCount.members++;
+        }
+    });
     localStorage.setItem('globalMembers', JSON.stringify(globalMembers));
     
-    console.log(`清理完成，共清理 ${cleanedCount} 个孤立社员`);
-    console.log('=== 清理完成 ===');
+    // 4. 删除所有管理员数据中该学校的数据
+    const admins = JSON.parse(localStorage.getItem('admins') || '{}');
+    Object.keys(admins).forEach(adminUsername => {
+        const adminKey = `admin_${adminUsername}`;
+        const adminData = JSON.parse(localStorage.getItem(adminKey) || '{}');
+        
+        // 删除该管理员的社团数据
+        if (adminData.clubs) {
+            Object.keys(adminData.clubs).forEach(clubId => {
+                const club = adminData.clubs[clubId];
+                if (club.schoolName === schoolName) {
+                    delete adminData.clubs[clubId];
+                }
+            });
+        }
+        
+        // 删除该管理员的已删除社团数据
+        if (adminData.deletedClubs) {
+            Object.keys(adminData.deletedClubs).forEach(clubId => {
+                const club = adminData.deletedClubs[clubId];
+                if (club.schoolName === schoolName) {
+                    delete adminData.deletedClubs[clubId];
+                }
+            });
+        }
+        
+        // 删除该管理员的社员数据
+        if (adminData.globalMembers) {
+            Object.keys(adminData.globalMembers).forEach(memberName => {
+                const member = adminData.globalMembers[memberName];
+                if (member.school === schoolName) {
+                    delete adminData.globalMembers[memberName];
+                }
+            });
+        }
+        
+        localStorage.setItem(adminKey, JSON.stringify(adminData));
+    });
+    
+    // 5. 删除待审核社团中该学校的数据
+    const pendingClubs = JSON.parse(localStorage.getItem('pendingClubs') || '{}');
+    Object.keys(pendingClubs).forEach(clubId => {
+        const club = pendingClubs[clubId];
+        if (club.schoolName === schoolName) {
+            delete pendingClubs[clubId];
+        }
+    });
+    localStorage.setItem('pendingClubs', JSON.stringify(pendingClubs));
+    
+    console.log(`学校 "${schoolName}" 数据删除完成:`, deletedCount);
+    return deletedCount;
+}
+
+// 社团管理相关函数
+function approveClub(clubId) {
+    const pendingClubs = JSON.parse(localStorage.getItem('pendingClubs') || '{}');
+    const club = pendingClubs[clubId];
+    
+    if (!club) {
+        alert('社团不存在');
+        return;
+    }
+    
+    // 设置社团状态为已审核通过
+    club.status = 'approved';
+    
+    // 添加到活跃社团
+    clubs[clubId] = club;
+    delete pendingClubs[clubId];
+    
+    // 保存数据
+    localStorage.setItem('pendingClubs', JSON.stringify(pendingClubs));
+    saveCurrentAdminData();
+    
+    alert('社团审核通过！');
+    loadClubsList();
+}
+
+function rejectClub(clubId) {
+    const pendingClubs = JSON.parse(localStorage.getItem('pendingClubs') || '{}');
+    delete pendingClubs[clubId];
+    
+    localStorage.setItem('pendingClubs', JSON.stringify(pendingClubs));
+    
+    alert('社团审核已拒绝');
+    loadClubsList();
+}
+
+function viewClubDetails(clubId) {
+    const club = clubs[clubId];
+    if (!club) {
+        alert('社团不存在');
+        return;
+    }
+    
+    const memberCount = Object.keys(club.members || {}).length;
+    const checkinCount = club.checkins ? club.checkins.length : 0;
+    
+    let details = `社团详情\n\n`;
+    details += `社团名称：${club.name}\n`;
+    details += `社团号：${club.id}\n`;
+    details += `学校：${club.schoolName}\n`;
+    details += `社长：${club.captain}\n`;
+    details += `社员数：${memberCount}\n`;
+    details += `签到数：${checkinCount}\n\n`;
+    
+    if (memberCount > 0) {
+        details += `社员列表：\n`;
+        Object.keys(club.members).forEach(memberName => {
+            details += `• ${memberName}\n`;
+        });
+    }
+    
+    alert(details);
+}
+
+function deleteClub(clubId) {
+    // 获取社团信息
+    const club = clubs[clubId];
+    if (!club) {
+        alert('社团不存在');
+        return;
+    }
+    
+    // 显示管理员删除社团弹窗
+    document.getElementById('adminDeleteClubModal').style.display = 'flex';
+    window.currentDeleteClubId = clubId;
+}
+
+function closeAdminDeleteClubModal() {
+    document.getElementById('adminDeleteClubModal').style.display = 'none';
+    document.getElementById('confirmAdminDeletePassword').value = '';
+    window.currentDeleteClubId = null;
+}
+
+function confirmAdminDeleteClub() {
+    const password = document.getElementById('confirmAdminDeletePassword').value;
+    const clubId = window.currentDeleteClubId;
+    
+    if (!password) {
+        alert('请输入管理员密码');
+        return;
+    }
+    
+    const club = clubs[clubId];
+    if (!club) {
+        alert('社团不存在');
+        return;
+    }
+    
+    // 验证管理员密码
+    if (password !== currentUser.password) {
+        alert('管理员密码错误');
+        return;
+    }
+    
+    // 移动到已删除列表
+    deletedClubs[clubId] = {
+        ...club,
+        deletedAt: new Date().toISOString(),
+        deletedBy: 'admin'
+    };
+    
+    // 从活跃列表删除
+    delete clubs[clubId];
+    
+    // 保存数据
+    saveCurrentAdminData();
+    
+    closeAdminDeleteClubModal();
+    alert('社团已删除');
+    loadClubsList();
+}
+
+function viewDeletedClubDetails(clubId) {
+    const club = deletedClubs[clubId];
+    if (!club) {
+        alert('社团不存在');
+        return;
+    }
+    
+    const memberCount = Object.keys(club.members || {}).length;
+    const checkinCount = club.checkins ? club.checkins.length : 0;
+    const deletedDate = new Date(club.deletedAt).toLocaleDateString('zh-CN');
+    
+    let details = `已删除社团详情\n\n`;
+    details += `社团名称：${club.name}\n`;
+    details += `社团号：${club.id}\n`;
+    details += `学校：${club.schoolName}\n`;
+    details += `社长：${club.captain}\n`;
+    details += `社员数：${memberCount}\n`;
+    details += `签到数：${checkinCount}\n`;
+    details += `删除时间：${deletedDate}\n`;
+    details += `删除方式：${club.deletedBy === 'self' ? '社长自主注销' : '管理员删除'}\n\n`;
+    
+    if (memberCount > 0) {
+        details += `社员列表：\n`;
+        Object.keys(club.members).forEach(memberName => {
+            details += `• ${memberName}\n`;
+        });
+    }
+    
+    alert(details);
+}
+
+function restoreClub(clubId) {
+    const club = deletedClubs[clubId];
+    if (!club) {
+        alert('社团不存在');
+        return;
+    }
+    
+    if (!confirm(`确定要恢复社团 "${club.name}" 吗？`)) {
+        return;
+    }
+    
+    // 恢复到活跃列表
+    delete club.deletedAt;
+    delete club.deletedBy;
+    clubs[clubId] = club;
+    
+    // 从已删除列表删除
+    delete deletedClubs[clubId];
+    
+    // 保存数据
+    saveCurrentAdminData();
+    
+    alert('社团已恢复');
+    loadDeletedClubsList();
+}
+
+function permanentDeleteClub(clubId) {
+    document.getElementById('permanentDeleteClubModal').style.display = 'flex';
+    window.currentPermanentDeleteClubId = clubId;
+}
+
+function closePermanentDeleteClubModal() {
+    document.getElementById('permanentDeleteClubModal').style.display = 'none';
+    document.getElementById('confirmPermanentDeletePassword').value = '';
+    window.currentPermanentDeleteClubId = null;
+}
+
+function confirmPermanentDeleteClub() {
+    const password = document.getElementById('confirmPermanentDeletePassword').value;
+    const clubId = window.currentPermanentDeleteClubId;
+    
+    if (!password) {
+        alert('请输入管理员密码');
+        return;
+    }
+    
+    if (password !== currentUser.password) {
+        alert('密码错误');
+        return;
+    }
+    
+    const club = deletedClubs[clubId];
+    if (!club) {
+        alert('社团不存在');
+        return;
+    }
+    
+    if (!confirm(`确定要永久删除社团 "${club.name}" 吗？此操作不可撤销！`)) {
+        return;
+    }
+    
+    // 永久删除
+    delete deletedClubs[clubId];
+    
+    // 保存数据
+    saveCurrentAdminData();
+    
+    closePermanentDeleteClubModal();
+    alert('社团已永久删除');
+    loadDeletedClubsList();
 }
 
 // 社员登录
@@ -1361,8 +2477,8 @@ function memberLogin() {
     // 检查并显示社团注销通知
     checkAndShowClubNotifications(globalMember);
     
-    document.getElementById('loginPage').style.display = 'none';
-    document.getElementById('memberPage').style.display = 'block';
+    document.getElementById('loginPage').classList.remove('active');
+    document.getElementById('memberPage').classList.add('active');
     
     loadMemberPage();
 }
@@ -2038,7 +3154,7 @@ function loadCaptainPage() {
     document.getElementById('statusDisplay').style.fontWeight = 'bold';
     
     // 显示签到码
-    document.getElementById('checkinCode').textContent = currentClub.checkinCode || '点击生成';
+    document.getElementById('checkinCode').textContent = currentClub.checkinCode || '';
     
     // 显示时长设置
     document.getElementById('timeC').value = currentClub.timeSettings.C;
@@ -2690,9 +3806,9 @@ function logout() {
     currentClub = null;
     currentUser = null;
     
-    document.getElementById('loginPage').style.display = 'block';
-    document.getElementById('captainPage').style.display = 'none';
-    document.getElementById('memberPage').style.display = 'none';
+    document.getElementById('loginPage').classList.add('active');
+    document.getElementById('captainPage').classList.remove('active');
+    document.getElementById('memberPage').classList.remove('active');
     
     // 清空输入框
     document.getElementById('captainId').value = '';
@@ -2884,7 +4000,7 @@ function copyCheckinCode() {
     const checkinCode = checkinCodeElement.textContent.replace('📋', '').trim();
     
     // 检查是否有签到码
-    if (!checkinCode || checkinCode === '点击生成') {
+    if (!checkinCode || checkinCode.trim() === '') {
         alert('请先生成签到码');
         return;
     }
@@ -4535,7 +5651,7 @@ function showClubDetails(clubId) {
                 if (activity.timeSettings.A > 0) parts.push(`A:${activity.timeSettings.A}h`);
                 if (activity.timeSettings.S > 0) parts.push(`S:${activity.timeSettings.S}h`);
                 timeInfo = parts.join(' + ');
-            } else {
+    } else {
                 timeInfo = '-';
             }
             
@@ -4620,7 +5736,7 @@ function getClubActivityDetails(clubId, memberName) {
                     timeSettings = checkin.timeSettings;
                 } else if (activity && activity.timeSettings) {
                     timeSettings = activity.timeSettings;
-                } else {
+    } else {
                     timeSettings = club.timeSettings;
                 }
                 
@@ -4768,7 +5884,7 @@ function testSchoolRegistration() {
         
         if (syncResult.inconsistentMembers.length > 0) {
             console.log('  ⚠️ 发现数据不一致的社员:', syncResult.inconsistentMembers.length);
-        } else {
+    } else {
             console.log('  ✅ 数据同步正常');
         }
     } else {
@@ -5080,7 +6196,7 @@ function testLoginInterfaceClick() {
     functions.forEach(funcName => {
         if (typeof window[funcName] === 'function') {
             console.log(`  ✅ ${funcName} 函数存在`);
-        } else {
+    } else {
             console.log(`  ❌ ${funcName} 函数不存在`);
         }
     });
@@ -5183,7 +6299,7 @@ function diagnosePageIssues() {
     keyFunctions.forEach(funcName => {
         if (typeof window[funcName] === 'function') {
             console.log(`  ✅ ${funcName}: 存在`);
-        } else {
+    } else {
             console.log(`  ❌ ${funcName}: 不存在`);
         }
     });
@@ -5408,7 +6524,7 @@ function testSchoolAutoFillFix() {
         
         if (schoolNameField.value === '测试学校C' && regMemberSchoolField.value === '') {
             console.log('✅ 默认情况学校填充正常（填充社团字段）');
-        } else {
+    } else {
             console.log('❌ 默认情况学校填充异常');
             console.log(`  社团字段值: "${schoolNameField.value}"`);
             console.log(`  社员字段值: "${regMemberSchoolField.value}"`);
@@ -5509,7 +6625,7 @@ function testMemberSchoolDisplay() {
                 
                 if (displayedSchool && displayedSchool !== '未设置') {
                     console.log('  ✅ 设置页面学校名称已正确显示');
-                } else {
+    } else {
                     console.log('  ⚠️ 设置页面学校名称为空或未设置');
                 }
             }
@@ -5530,13 +6646,92 @@ function testMemberSchoolDisplay() {
             const settingsSection = document.getElementById('memberSettingsSection');
             if (settingsSection && settingsSection.style.display !== 'none') {
                 console.log('✅ 设置页面已显示');
-            } else {
+    } else {
                 console.log('❌ 设置页面未显示');
-            }
+    }
         }
     } catch (error) {
         console.log('❌ 页面切换出错:', error.message);
+}
+
+    console.log('\n=== 社员界面学校名称显示功能测试完成 ===');
+}
+
+// ==================== 报错反馈功能 ====================
+
+// 显示报错反馈弹窗
+function showReportModal() {
+    document.getElementById('reportModal').style.display = 'flex';
+}
+
+// 关闭报错反馈弹窗
+function closeReportModal() {
+    document.getElementById('reportModal').style.display = 'none';
+}
+
+// 显示设置弹窗
+function showSettingsModal() {
+    document.getElementById('settingsModal').style.display = 'flex';
+}
+
+// 关闭设置弹窗
+function closeSettingsModal() {
+    document.getElementById('settingsModal').style.display = 'none';
+}
+
+// 切换语言（保持函数以避免报错，但功能已移除）
+function changeLanguage(lang) {
+    console.log('语言切换功能已移除');
+}
+
+// 复制邮箱地址
+function copyEmail() {
+    const email = '3653009361@qq.com';
+    
+    // 使用现代浏览器的 Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(email).then(() => {
+            alert('邮箱地址已复制到剪贴板！');
+        }).catch(err => {
+            console.error('复制失败:', err);
+            fallbackCopyTextToClipboard(email);
+        });
+    } else {
+        // 降级方案：使用传统方法
+        fallbackCopyTextToClipboard(email);
+    }
+}
+
+// 降级复制方法
+function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.top = '0';
+    textArea.style.left = '0';
+    textArea.style.width = '2em';
+    textArea.style.height = '2em';
+    textArea.style.padding = '0';
+    textArea.style.border = 'none';
+    textArea.style.outline = 'none';
+    textArea.style.boxShadow = 'none';
+    textArea.style.background = 'transparent';
+    
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            alert('邮箱地址已复制到剪贴板！');
+        } else {
+            alert('复制失败，请手动复制：' + text);
+        }
+    } catch (err) {
+        console.error('复制命令失败:', err);
+        alert('复制失败，请手动复制：' + text);
     }
     
-    console.log('\n=== 社员界面学校名称显示功能测试完成 ===');
+    document.body.removeChild(textArea);
 }
